@@ -1,0 +1,13 @@
+mode: 0 # 0: live connection, 1: folder
+
+input_dir: "/home/cdger/Downloads/frames2"
+
+socket:
+#  address: 192.168.28.60
+  address: 100.68.127.41
+  rgb_port: 5557
+  depth_port: 5555
+
+image:
+  width: 848
+  height: 480

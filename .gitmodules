@@ -1,0 +1,4 @@
+[submodule "image-stitcher"]
+	path = image_stitcher
+	url = git@github.com:codegallivant/image-stitcher.git
+	branch = master
