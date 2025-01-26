@@ -10,6 +10,7 @@ import time
 import zstandard as zstd
 from threading import Thread, Lock
 from collections import deque
+from utils.convert_bin import convert_bin_files
 
 
 # Read the configuration file
@@ -17,7 +18,8 @@ logging.info("Reading configuration file")
 with open("config.yaml", 'r') as ymlfile:
     cfg = yaml.safe_load(ymlfile)
     MODE = cfg["mode"]
-    INPUT_DIR = cfg["input_dir"]
+    INPUT_DIR = cfg["directory"]["input_dir"]
+    UNPACK = cfg["directory"]["unpack"]
     ADDRESS = cfg["socket"]["address"]
     RGB_PORT = cfg["socket"]["rgb_port"]
     DEPTH_PORT = cfg["socket"]["depth_port"]
@@ -36,8 +38,6 @@ class SynchronizedStitcher:
         if not first_stitch:
             if self.rgb_stitcher.stitch_count > self.depth_stitcher.stitch_count:
                 self.depth_stitcher.save_and_reset()
-                # self.depth_stitcher.refs.append(None)
-                # self.rgb_stitcher_length = len(self.rgb_stitcher.refs)
         self.depth_stitcher.stitch_consecutive(utils.get_depth_image_from_matrix(depth_image), tf)
 
 
@@ -49,12 +49,18 @@ utils.reset_directory('output/depth')
 sync_st = SynchronizedStitcher(
     rgb_args={
         "output_dir": "output/rgb",
-        "matcher": 1,
-        "algorithm": 1
+        "matcher": 0,
+        "algorithm": 2,
+        "backup_interval": 50,
+        "consecutive_range": 3,
+        "blender": 1
     },
     depth_args={
         "output_dir": "output/depth",
         "blend_processor": lambda x: utils.color_map(x),
+        "backup_interval": 50,
+        "blender": 0,
+        "ref_image_contrib": 0.5
     }
 )
 
@@ -143,7 +149,6 @@ class FrameReceiver:
         self.running = False
         self.context.term()
 
-# Usage example
 processing_times = list()
 def handle_frames(depth, rgb):
     processing_times.append(time.time())
@@ -164,23 +169,33 @@ if MODE == 0: # live connection
     try:
         while True:
             time.sleep(1)  # Keep main thread alive
-    except KeyboardInterrupt:
+    except Exception as e:
+        print("Exception:", str(e))
         receiver.stop()
         sync_st.depth_stitcher.save_last_stitch()
         sync_st.rgb_stitcher.save_last_stitch()
 
 elif MODE == 1: # files:
+    if UNPACK:
+        convert_bin_files(INPUT_DIR, "unpacked_input", WIDTH, HEIGHT)
+        INPUT_DIR = "unpacked_input"
     all_files = os.listdir(INPUT_DIR)
-    rgb_files = sorted([file for file in all_files if "color" in os.path.basename(file)])
-    depth_files = sorted([file for file in all_files if "depth" in os.path.basename(file)])
+    print(all_files)    
+    def sortkey(s):
+        return int(s.split("_")[1])
+    rgb_files = sorted([file for file in all_files if "color" in os.path.basename(file) or "rgb" in os.path.basename(file)], key = lambda x: sortkey(x))
+    depth_files = sorted([file for file in all_files if "depth" in os.path.basename(file)], key= lambda x: sortkey(x))
 
-    rgb_stitcher_length = 1
+    try:
+        for rgb_file, depth_file in zip(rgb_files, depth_files):
+            rgb_file_path = os.path.join(INPUT_DIR, rgb_file)
+            rgb_image = cv2.imread(rgb_file_path)
 
-    for rgb_file, depth_file in zip(rgb_files, depth_files):
-        rgb_file_path = os.path.join(INPUT_DIR, rgb_file)
-        rgb_image = cv2.imread(rgb_file_path)
+            depth_file_path = os.path.join(INPUT_DIR, depth_file)
+            depth_matrix = cv2.imread(depth_file_path, cv2.IMREAD_UNCHANGED)        
 
-        depth_file_path = os.path.join(INPUT_DIR, depth_file)
-        depth_matrix = cv2.imread(depth_file_path, cv2.IMREAD_UNCHANGED)        
-
-        sync_st.stitch(rgb_image, depth_matrix)
+            sync_st.stitch(rgb_image, depth_matrix)
+    except Exception as e:
+        print("Exception", str(e))
+        sync_st.depth_stitcher.save_last_stitch()
+        sync_st.rgb_stitcher.save_last_stitch()
