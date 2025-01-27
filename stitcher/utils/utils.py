@@ -9,7 +9,7 @@ import zstandard as zstd
 
 
 def color_map(img):
-    cm_hot = mpl.cm.get_cmap('hot')
+    cm_hot = mpl.colormaps.get_cmap('hot')
     img_src = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_src = Image.fromarray(img).convert('L')
     img_src.thumbnail((512,512))

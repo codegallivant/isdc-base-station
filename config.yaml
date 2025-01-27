@@ -1,4 +1,4 @@
-project_dir: /mnt/d/isdc-stitcher/
+project_dir: /mnt/d/isdc-base-station/
 
 
 packages:
@@ -47,7 +47,7 @@ packages:
 
 
 main:
-  stitcher: false
-  cone_detector: true
-  depth_estimator: true
-  path_planner: true
+  stitcher: true
+  cone_detector: false
+  depth_estimator: false
+  path_planner: false
