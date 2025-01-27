@@ -1,15 +1,53 @@
-mode: 1 # 0: live connection, 1: directory
+project_dir: /mnt/d/isdc-stitcher/
 
-directory:
-  input_dir: "/mnt/d/isdc-stitcher/frames_packed"
-  unpack: true
 
-socket:
-  address: 192.168.28.60
-  # address: 100.68.127.41
-  rgb_port: 5557
-  depth_port: 5555
+packages:
+  stitcher:
+    mode: 1 # 0: live socket, 1: directory
 
-image:
-  width: 848
-  height: 480
+    directory:
+      input_path: "data/input"
+      unpack: false
+
+    socket:
+      address: 192.168.28.60
+      # address: 100.68.127.41
+      rgb_port: 5557
+      depth_port: 5555
+
+    image:
+      width: 848
+      height: 480
+
+    backup_interval: 50
+    log_level: 1
+    
+    output_path_stitch: "data/output/stitcher/"
+    output_path_src_pt: "data/output/stitcher/source.yaml"
+
+  cone_detector:
+    mode: 1 # 0: manual, 1: auto
+    input_path: "data/output/stitcher/rgb"
+    output_path: "data/output/cone_detector/output.yaml"
+    model_path: "models/cone_detector/cone_detector.pt"
+
+  depth_estimator:
+    input_path: "data/output/stitcher/rgb"
+    output_path: "data/output/depth_estimator/"
+    model_path: "models/depth_estimator/depth_anything_v2_base.pth"
+
+  path_planner:
+    
+    # input_path_depth: "data/output/depth_estimator/output/"
+    input_path_depth: "data/output/stitcher/depth/"
+    input_path_cones: "data/output/cone_detector/output.yaml"
+    input_path_source_point: "data/output/stitcher/source.yaml"
+
+    output_path: "data/output/path_planner/output/"
+
+
+main:
+  stitcher: false
+  cone_detector: true
+  depth_estimator: true
+  path_planner: true

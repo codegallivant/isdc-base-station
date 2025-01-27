@@ -1,0 +1,15 @@
+backup_interval: 50
+directory:
+  input_path: /mnt/d/isdc-stitcher/data/input
+  unpack: false
+image:
+  height: 480
+  width: 848
+log_level: 1
+mode: 1
+output_path_src_pt: /mnt/d/isdc-stitcher/data/output/stitcher/source.yaml
+output_path_stitch: /mnt/d/isdc-stitcher/data/output/stitcher/
+socket:
+  address: 192.168.28.60
+  depth_port: 5555
+  rgb_port: 5557

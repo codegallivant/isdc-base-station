@@ -1,7 +1,9 @@
 venv/
 __pycache__/
 
-unpacked_input/
-output/
+run.sh
+
+data/
+models/
 
 old/

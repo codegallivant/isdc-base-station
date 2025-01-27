@@ -18,49 +18,75 @@ logging.info("Reading configuration file")
 with open("config.yaml", 'r') as ymlfile:
     cfg = yaml.safe_load(ymlfile)
     MODE = cfg["mode"]
-    INPUT_DIR = cfg["directory"]["input_dir"]
+    INPUT_DIR = cfg["directory"]["input_path"]
     UNPACK = cfg["directory"]["unpack"]
     ADDRESS = cfg["socket"]["address"]
     RGB_PORT = cfg["socket"]["rgb_port"]
     DEPTH_PORT = cfg["socket"]["depth_port"]
     WIDTH = cfg["image"]["width"]
     HEIGHT = cfg["image"]["height"]
+    OUTPUT_DIR = cfg["output_path_stitch"]
+    SRC_PT_PATH = cfg["output_path_src_pt"]
+    LOG_LEVEL = cfg["log_level"]
+    BACKUP_INTERVAL = cfg["backup_interval"]
+
+RGB_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "rgb")
+DEPTH_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "depth")
+
+
+def save_src_pt(src_pt):
+    point_dict = {
+        "source_point": src_pt
+    }
+    with open(SRC_PT_PATH, 'w') as file:
+        yaml.dump(point_dict, file, default_flow_style=False)
+    print(f"Saved source points to {SRC_PT_PATH}")
 
 
 class SynchronizedStitcher:
-    def __init__(self, rgb_args=None, depth_args=None):
+    def __init__(self, rgb_args=None, depth_args=None, points=None):
         self.rgb_stitcher = ConsecutiveStitcher(**rgb_args)
         self.depth_stitcher = ConsecutiveStitcher(**depth_args)
 
+
     def stitch(self, rgb_image, depth_image):
         first_stitch = self.rgb_stitcher.stitch_count == 0
+        start = time.time()
         tf = self.rgb_stitcher.stitch_consecutive(rgb_image)
+        end = time.time()
+        print("RGB Stitching time:", end-start)
         if not first_stitch:
             if self.rgb_stitcher.stitch_count > self.depth_stitcher.stitch_count:
                 self.depth_stitcher.save_and_reset()
+        start = time.time()
         self.depth_stitcher.stitch_consecutive(utils.get_depth_image_from_matrix(depth_image), tf)
+        end = time.time()
+        print("Depth Stitching time:", end-start)
+        return tf
 
 
-utils.reset_directory('output')
-utils.reset_directory('output/rgb')
-utils.reset_directory('output/depth')
+utils.reset_directory(OUTPUT_DIR)
+utils.reset_directory(RGB_OUTPUT_DIR)
+utils.reset_directory(DEPTH_OUTPUT_DIR)
 
 
 sync_st = SynchronizedStitcher(
     rgb_args={
-        "output_dir": "output/rgb",
+        "output_dir": RGB_OUTPUT_DIR,
         "matcher": 0,
         "algorithm": 2,
-        "backup_interval": 50,
+        "backup_interval": BACKUP_INTERVAL,
         "consecutive_range": 3,
-        "blender": 1
+        "blender": 1,
+        "log_level": LOG_LEVEL
     },
     depth_args={
-        "output_dir": "output/depth",
+        "output_dir": DEPTH_OUTPUT_DIR,
         "blend_processor": lambda x: utils.color_map(x),
-        "backup_interval": 50,
+        "backup_interval": BACKUP_INTERVAL,
         "blender": 0,
-        "ref_image_contrib": 0.5
+        "ref_image_contrib": 0.5,
+        "log_level": LOG_LEVEL
     }
 )
 
@@ -150,16 +176,27 @@ class FrameReceiver:
         self.context.term()
 
 processing_times = list()
+src_pt = None
+prev_shape = None
 def handle_frames(depth, rgb):
+    global src_pt, prev_shape
     processing_times.append(time.time())
     if(len(processing_times) > 10):
         processing_times.pop(0)
-    print(f"Average processing time: {np.mean(np.diff(processing_times))}")
-    if depth is not None:
-        print(f"Processing depth frame: {depth.shape}")
-    if rgb is not None:
-        print(f"Processing RGB frame: {rgb.shape}")
-        sync_st.stitch(rgb, depth)
+    print(f"Average processing time (last 10 frames): {np.mean(np.diff(processing_times))}")
+    if not (depth is None) and not (rgb is None):
+        print(f"Processing depth({depth.shape}) and RGB{rgb.shape} frame:")
+        tf = sync_st.stitch(rgb, depth)
+        if sync_st.rgb_stitcher.stitch_count == 0:
+            if src_pt is None:
+                src_pt = [rgb.shape[1]//2, rgb.shape[0]//2]
+            else:
+                src_pt = [src_pt[0] + (sync_st.rgb_stitcher.refs[0].shape[1] - prev_shape[1]), src_pt[1] + (sync_st.rgb_stitcher.refs[0].shape[0] - prev_shape[0])]
+            prev_shape = sync_st.rgb_stitcher.refs[0].shape
+            if sync_st.rgb_stitcher.image_count % BACKUP_INTERVAL == 0:
+                save_src_pt(src_pt)
+        else:
+            save_src_pt(src_pt)
 
 
 if MODE == 0: # live connection
@@ -174,6 +211,8 @@ if MODE == 0: # live connection
         receiver.stop()
         sync_st.depth_stitcher.save_last_stitch()
         sync_st.rgb_stitcher.save_last_stitch()
+        save_src_pt(src_pt)
+
 
 elif MODE == 1: # files:
     if UNPACK:
@@ -194,8 +233,10 @@ elif MODE == 1: # files:
             depth_file_path = os.path.join(INPUT_DIR, depth_file)
             depth_matrix = cv2.imread(depth_file_path, cv2.IMREAD_UNCHANGED)        
 
-            sync_st.stitch(rgb_image, depth_matrix)
+            # sync_st.stitch(rgb_image, depth_matrix)
+            handle_frames(depth_matrix, rgb_image)
     except Exception as e:
         print("Exception", str(e))
         sync_st.depth_stitcher.save_last_stitch()
         sync_st.rgb_stitcher.save_last_stitch()
+        save_src_pt(src_pt)

@@ -1,0 +1,4 @@
+input_path: /mnt/d/isdc-stitcher/data/output/stitcher/rgb
+mode: 1
+model_path: /mnt/d/isdc-stitcher/models/cone_detector/cone_detector.pt
+output_path: /mnt/d/isdc-stitcher/data/output/cone_detector/output.yaml
