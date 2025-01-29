@@ -5,11 +5,11 @@ directory:
 image:
   height: 480
   width: 848
-log_level: 1
+log_level: 2
 mode: 1
 output_path_src_pt: /mnt/d/isdc-base-station/data/output/stitcher/source.yaml
 output_path_stitch: /mnt/d/isdc-base-station/data/output/stitcher/
 socket:
-  address: 192.168.28.60
+  address: 192.168.28.78
   depth_port: 5555
   rgb_port: 5557

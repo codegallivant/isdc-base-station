@@ -49,19 +49,20 @@ class SynchronizedStitcher:
         self.depth_stitcher = ConsecutiveStitcher(**depth_args)
 
 
-    def stitch(self, rgb_image, depth_image):
+    def stitch(self, rgb_image, depth_image = None):
         first_stitch = self.rgb_stitcher.stitch_count == 0
         start = time.time()
         tf = self.rgb_stitcher.stitch_consecutive(rgb_image)
         end = time.time()
         print("RGB Stitching time:", end-start)
-        if not first_stitch:
-            if self.rgb_stitcher.stitch_count > self.depth_stitcher.stitch_count:
-                self.depth_stitcher.save_and_reset()
-        start = time.time()
-        self.depth_stitcher.stitch_consecutive(utils.get_depth_image_from_matrix(depth_image), tf)
-        end = time.time()
-        print("Depth Stitching time:", end-start)
+        if not (depth_image is None):
+            if not first_stitch:
+                if self.rgb_stitcher.stitch_count > self.depth_stitcher.stitch_count:
+                    self.depth_stitcher.save_and_reset()
+            start = time.time()
+            self.depth_stitcher.stitch_consecutive(utils.get_depth_image_from_matrix(depth_image), tf)
+            end = time.time()
+            print("Depth Stitching time:", end-start)
         return tf
 
 
@@ -76,7 +77,7 @@ sync_st = SynchronizedStitcher(
         "matcher": 0,
         "algorithm": 2,
         "backup_interval": BACKUP_INTERVAL,
-        "consecutive_range": 3,
+        "consecutive_range": 2,
         "blender": 1,
         "log_level": LOG_LEVEL
     },
@@ -184,8 +185,8 @@ def handle_frames(depth, rgb):
     if(len(processing_times) > 10):
         processing_times.pop(0)
     print(f"Average processing time (last 10 frames): {np.mean(np.diff(processing_times))}")
-    if not (depth is None) and not (rgb is None):
-        print(f"Processing depth({depth.shape}) and RGB{rgb.shape} frame:")
+    if not (rgb is None):
+        print(f"Processing depth({depth.shape if not (depth is None) else depth}) and RGB{rgb.shape} frame:")
         tf = sync_st.stitch(rgb, depth)
         if sync_st.rgb_stitcher.stitch_count == 0:
             if src_pt is None:
@@ -222,17 +223,24 @@ elif MODE == 1: # files:
     print(all_files)    
     def sortkey(s):
         return int(s.split("_")[1])
+    # rgb_files = sorted(all_files, key=lambda x: sortkey(x))
     rgb_files = sorted([file for file in all_files if "color" in os.path.basename(file) or "rgb" in os.path.basename(file)], key = lambda x: sortkey(x))
     depth_files = sorted([file for file in all_files if "depth" in os.path.basename(file)], key= lambda x: sortkey(x))
-
+    if len(depth_files) == 0:
+        depth_files = None
+        print("No depth files found. Not stitching depth.")
     try:
-        for rgb_file, depth_file in zip(rgb_files, depth_files):
+        for i in range(len(rgb_files)):
+            rgb_file = rgb_files[i]
             rgb_file_path = os.path.join(INPUT_DIR, rgb_file)
             rgb_image = cv2.imread(rgb_file_path)
 
-            depth_file_path = os.path.join(INPUT_DIR, depth_file)
-            depth_matrix = cv2.imread(depth_file_path, cv2.IMREAD_UNCHANGED)        
-
+            if not (depth_files is None):
+                depth_file = depth_files[i]
+                depth_file_path = os.path.join(INPUT_DIR, depth_file)
+                depth_matrix = cv2.imread(depth_file_path, cv2.IMREAD_UNCHANGED)        
+            else:
+                depth_matrix = None
             # sync_st.stitch(rgb_image, depth_matrix)
             handle_frames(depth_matrix, rgb_image)
     except Exception as e:

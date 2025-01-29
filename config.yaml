@@ -3,14 +3,15 @@ project_dir: /mnt/d/isdc-base-station/
 
 packages:
   stitcher:
-    mode: 1 # 0: live socket, 1: directory
+    mode: 0 # 0: live socket, 1: directory
 
     directory:
+      # input_path: "/mnt/d/datasets/isdc_test_drone_datasets/d1"
       input_path: "data/input"
       unpack: false
 
     socket:
-      address: 192.168.28.60
+      address: 192.168.28.78
       # address: 100.68.127.41
       rgb_port: 5557
       depth_port: 5555
@@ -20,7 +21,7 @@ packages:
       height: 480
 
     backup_interval: 50
-    log_level: 1
+    log_level: 2
     
     output_path_stitch: "data/output/stitcher/"
     output_path_src_pt: "data/output/stitcher/source.yaml"
@@ -38,16 +39,17 @@ packages:
 
   path_planner:
     
-    # input_path_depth: "data/output/depth_estimator/output/"
+    # input_path_depth: "data/output/depth_estimator/"
     input_path_depth: "data/output/stitcher/depth/"
+    input_path_depth: "/mnt/d/datasets/isdc_test_drone_datasets/d1"
     input_path_cones: "data/output/cone_detector/output.yaml"
     input_path_source_point: "data/output/stitcher/source.yaml"
 
-    output_path: "data/output/path_planner/output/"
+    output_path: "data/output/path_planner/"
 
 
 main:
   stitcher: true
-  cone_detector: false
-  depth_estimator: false
-  path_planner: false
+  cone_detector: true
+  depth_estimator: true
+  path_planner: true

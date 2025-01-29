@@ -1,7 +1,7 @@
 import yaml
 from tqdm import tqdm
 import os
-
+import glob
 
 def load_config(config_file):
     with open(config_file, 'r') as file:
@@ -14,6 +14,15 @@ PROJECT_DIR = config["project_dir"]
 
 run_list = [k for k in config["main"].keys() if config["main"][k] is True]
 
+def reset_directory(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    else:
+        delfiles = glob.glob(path+"/*")
+        for f in delfiles:
+            if os.path.isfile(f):
+                os.remove(f)
+
 def chdir_config(config):
     for key in config:
         if isinstance(config[key], dict):
@@ -25,6 +34,8 @@ def chdir_config(config):
                 folder = os.path.dirname(config[key])
             if not os.path.exists(folder):
                 os.makedirs(folder, exist_ok=True)
+            if "output" in key.lower():
+                reset_directory(folder)
             
     return config
 
@@ -38,7 +49,6 @@ for package in run_list:
     package_dir = os.path.join(PROJECT_DIR, package)
     with open(os.path.join(package_dir, 'config.yaml'), 'w') as outfile:
         yaml.dump(cfg, outfile, default_flow_style=False)
-
 
 
 for package in run_list:
