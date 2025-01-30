@@ -1,0 +1,5 @@
+input_path: /mnt/d/isdc-base-station/data/output/stitcher/rgb
+model_path_crater: /mnt/d/isdc-base-station/models/image_analysis/crater.pt
+model_path_river: /mnt/d/isdc-base-station/models/image_analysis/river.pt
+model_path_terrain: /mnt/d/isdc-base-station/models/image_analysis/terrain.pt
+output_path: /mnt/d/isdc-base-station/data/output/image_analysis/

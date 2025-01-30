@@ -47,9 +47,17 @@ packages:
 
     output_path: "data/output/path_planner/"
 
+  image_analysis:
+    input_path: "data/output/stitcher/rgb"
+    output_path: "data/output/image_analysis/"
+    model_path_terrain: "models/image_analysis/terrain.pt"
+    model_path_crater: "models/image_analysis/crater.pt"
+    model_path_river: "models/image_analysis/river.pt"
+
 
 main:
-  stitcher: true
-  cone_detector: true
-  depth_estimator: true
-  path_planner: true
+  stitcher: false
+  cone_detector: false
+  depth_estimator: false
+  image_analysis: true
+  path_planner: false

@@ -6,7 +6,7 @@ image:
   height: 480
   width: 848
 log_level: 2
-mode: 1
+mode: 0
 output_path_src_pt: /mnt/d/isdc-base-station/data/output/stitcher/source.yaml
 output_path_stitch: /mnt/d/isdc-base-station/data/output/stitcher/
 socket:
