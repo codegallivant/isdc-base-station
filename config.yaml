@@ -41,7 +41,6 @@ packages:
     
     # input_path_depth: "data/output/depth_estimator/"
     input_path_depth: "data/output/stitcher/depth/"
-    input_path_depth: "/mnt/d/datasets/isdc_test_drone_datasets/d1"
     input_path_cones: "data/output/cone_detector/output.yaml"
     input_path_source_point: "data/output/stitcher/source.yaml"
 
