@@ -1,15 +1,18 @@
+algorithm: 2
 backup_interval: 50
 directory:
-  input_path: /mnt/d/isdc-base-station/data/input
+  input_path: /mnt/d/datasets/isdc_test_drone_datasets/d1
   unpack: false
 image:
   height: 480
   width: 848
+input_log_path: /mnt/d/isdc-base-station/data/output/stitcher/frames
 log_level: 2
+matcher: 0
 mode: 0
 output_path_src_pt: /mnt/d/isdc-base-station/data/output/stitcher/source.yaml
 output_path_stitch: /mnt/d/isdc-base-station/data/output/stitcher/
 socket:
-  address: 192.168.28.78
+  address: 192.168.1.21
   depth_port: 5555
   rgb_port: 5557

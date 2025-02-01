@@ -6,12 +6,12 @@ packages:
     mode: 0 # 0: live socket, 1: directory
 
     directory:
-      # input_path: "/mnt/d/datasets/isdc_test_drone_datasets/d1"
-      input_path: "data/input"
+      input_path: "/mnt/d/datasets/isdc_test_drone_datasets/d1"
+      # input_path: "data/input"
       unpack: false
 
     socket:
-      address: 192.168.28.78
+      address: 192.168.1.21
       # address: 100.68.127.41
       rgb_port: 5557
       depth_port: 5555
@@ -22,14 +22,26 @@ packages:
 
     backup_interval: 50
     log_level: 2
+
+    algorithm: 2
+    matcher: 0
     
+    input_log_path: "data/output/stitcher/frames"
     output_path_stitch: "data/output/stitcher/"
     output_path_src_pt: "data/output/stitcher/source.yaml"
 
-  cone_detector:
-    mode: 1 # 0: manual, 1: auto
+  cone_gps:
+    mode: 0 # 0: manual, 1: auto
+    input_path: "data/output/stitcher/frames/rgb"
+    output_path: "data/output/cone_gps/output.yaml"
+    bbox_output_path: "data/output/cone_gps/bbox"
+    model_path: "models/cone_detector/cone_detector.pt"
+  
+  cone_pixel:
+    mode: 0 # 0: manual, 1: auto
     input_path: "data/output/stitcher/rgb"
-    output_path: "data/output/cone_detector/output.yaml"
+    output_path: "data/output/cone_pixel/output.yaml"
+    bbox_output_path: "data/output/cone_pixel/bbox"
     model_path: "models/cone_detector/cone_detector.pt"
 
   depth_estimator:
@@ -38,10 +50,11 @@ packages:
     model_path: "models/depth_estimator/depth_anything_v2_base.pth"
 
   path_planner:
-    
-    # input_path_depth: "data/output/depth_estimator/"
+
+    input_path_rgb: "data/output/cone_pixel/bbox"
+    # input_path_depth: "data/output/depth_estimator/processed"
     input_path_depth: "data/output/stitcher/depth/"
-    input_path_cones: "data/output/cone_detector/output.yaml"
+    input_path_cones: "data/output/cone_pixel/output.yaml"
     input_path_source_point: "data/output/stitcher/source.yaml"
 
     output_path: "data/output/path_planner/"
@@ -55,8 +68,9 @@ packages:
 
 
 main:
-  stitcher: false
-  cone_detector: false
-  depth_estimator: false
+  stitcher: true
+  cone_pixel: true
+  depth_estimator: true
   image_analysis: true
-  path_planner: false
+  path_planner: true
+  cone_gps: false

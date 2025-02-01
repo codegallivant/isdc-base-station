@@ -1,121 +1,123 @@
-# Convert compressed frames to png
 import os
+import struct
 import argparse
+import numpy as np
 import cv2
 import zstandard as zstd
-import numpy as np
 from tqdm import tqdm
+from pathlib import Path
 
-def convert_bin_files(input_dir, output_dir, width=848, height=480):
-    # Create output directories
-    depth_dir = os.path.join(output_dir)
-    rgb_dir = os.path.join(output_dir)
-    os.makedirs(depth_dir, exist_ok=True)
-    os.makedirs(rgb_dir, exist_ok=True)
+def read_frame_from_file(file):
+    """Read a single frame and its GPS data from the binary file."""
+    try:
+        # Read GPS data
+        gps_data = struct.unpack('ddd', file.read(24))  # 3 doubles for lat, lon, alt
+        
+        # Read frame size
+        size = struct.unpack('I', file.read(4))[0]
+        
+        # Read frame data
+        data = file.read(size)
+        
+        return gps_data, data
+    except struct.error:
+        return None, None
 
-    # Create Zstandard decompressor
-    dctx = zstd.ZstdDecompressor()
-
-    # Process all bin files in input directory
-    for bin_file in tqdm(os.listdir(input_dir), desc="Processing files"):
-        if not bin_file.endswith(".bin"):
-            continue
-
-        file_path = os.path.join(input_dir, bin_file)
-        base_name = os.path.splitext(bin_file)[0]
-
-        # Determine file type
-        if "depth" in base_name.lower():
-            output_subdir = depth_dir
-            is_depth = True
-        elif "rgb" in base_name.lower() or "color" in base_name.lower():
-            output_subdir = rgb_dir
-            is_depth = False
-        else:
-            continue
-
-        # Read and process binary file
-        try:
-            with open(file_path, "rb") as f:
-                frame_count = 0
-                
-                while True:
-                    # Read size header
-                    size_bytes = f.read(4)
-                    if not size_bytes:
-                        break
+def decompress_bin_file(input_file, output_dir, is_depth=False):
+    """Decompress a binary file containing frames and GPS data."""
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Initialize decompressor for depth frames
+    if is_depth:
+        dctx = zstd.ZstdDecompressor()
+    
+    with open(input_file, 'rb') as f:
+        frame_count = 0
+        
+        # Get file size for progress bar
+        f.seek(0, 2)
+        file_size = f.tell()
+        f.seek(0)
+        
+        with tqdm(total=file_size, desc=f"Decompressing {Path(input_file).name}") as pbar:
+            while f.tell() < file_size:
+                result = read_frame_from_file(f)
+                if result[0] is None:
+                    break
                     
-                    data_size = int.from_bytes(size_bytes, byteorder='little')
-                    if data_size == 0:
-                        break
-
-                    # Read compressed data
-                    compressed_data = f.read(data_size)
-                    if len(compressed_data) != data_size:
-                        break
-
-                    # Decompress based on file type
+                gps_data, frame_data = result
+                
+                try:
+                    # Create filename with GPS coordinates
+                    filename = os.path.splitext(Path(input_file).name)[0]
+                    
                     if is_depth:
-                        # Decompress depth frame
-                        depth_data = dctx.decompress(compressed_data)
-                        depth_frame = np.frombuffer(depth_data, dtype=np.uint16)
-                        depth_frame = depth_frame.reshape((height, width))
+                        # Decompress depth frame (ZSTD)
+                        decompressed_data = dctx.decompress(frame_data)
+                        depth_array = np.frombuffer(decompressed_data, dtype=np.uint16)
+                        depth_array = depth_array.reshape(480, 848)  # Known dimensions
                         
-                        # Normalize for visualization
-                        depth_image = cv2.normalize(
-                            depth_frame, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U
-                        )
-                        output_path = os.path.join(
-                            output_subdir, 
-                            f"{base_name}_frame.png"
-                        )
-                        cv2.imwrite(output_path, depth_image)
+                        # Save as 16-bit PNG
+                        cv2.imwrite(os.path.join(output_dir, filename + ".png"), depth_array)
                     else:
-                        # Decompress RGB frame
-                        rgb_image = cv2.imdecode(
-                            np.frombuffer(compressed_data, dtype=np.uint8),
-                            cv2.IMREAD_COLOR
-                        )
-                        output_path = os.path.join(
-                            output_subdir,
-                            f"{base_name}_frame.png"
-                        )
-                        cv2.imwrite(output_path, rgb_image)
+                        # Decompress RGB frame (WebP)
+                        nparr = np.frombuffer(frame_data, np.uint8)
+                        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                        if img is not None:
+                            cv2.imwrite(os.path.join(output_dir, filename + ".png"), img)
+                        else:
+                            print(f"Warning: Could not decode frame {frame_count} in {input_file}")
                     
                     frame_count += 1
+                    pbar.update(f.tell() - pbar.n)
+                except Exception as e:
+                    print(f"Error processing frame {frame_count} in {input_file}: {e}")
+                    continue
+    
+    return frame_count
 
-        except Exception as e:
-            print(f"\nError processing {bin_file}: {str(e)}")
+def convert_bin_files(input_dir, output_dir):
+    """Process all bin files in the input directory."""
+    input_path = Path(input_dir)
+    
+    # Create output directories
+    depth_dir = Path(output_dir) / "depth"
+    rgb_dir = Path(output_dir) / "rgb"
+    os.makedirs(depth_dir, exist_ok=True)
+    os.makedirs(rgb_dir, exist_ok=True)
+    
+    # Find all bin files
+    depth_files = sorted(input_path.glob("depth_*.bin"))
+    rgb_files = sorted(input_path.glob("rgb_*.bin"))
+    
+    total_depth_frames = 0
+    total_rgb_frames = 0
+    
+    print("\nProcessing depth files...")
+    for depth_file in depth_files:
+        frames = decompress_bin_file(str(depth_file), str(depth_dir), is_depth=True)
+        total_depth_frames += frames
+    
+    print("\nProcessing RGB files...")
+    for rgb_file in rgb_files:
+        frames = decompress_bin_file(str(rgb_file), str(rgb_dir), is_depth=False)
+        total_rgb_frames += frames
+    
+    print(f"\nSummary:")
+    print(f"Processed {len(depth_files)} depth files ({total_depth_frames} frames)")
+    print(f"Processed {len(rgb_files)} RGB files ({total_rgb_frames} frames)")
+    print(f"Output saved to:")
+    print(f"  Depth images: {depth_dir}")
+    print(f"  RGB images: {rgb_dir}")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Convert depth/RGB bin files to PNG images"
-    )
-    parser.add_argument(
-        "-i", "--input", 
-        required=True,
-        help="Input directory containing .bin files"
-    )
-    parser.add_argument(
-        "-o", "--output", 
-        required=True,
-        help="Output directory for PNG images"
-    )
-    parser.add_argument(
-        "--width", 
-        type=int, 
-        default=848,
-        help="Image width (default: 848)"
-    )
-    parser.add_argument(
-        "--height", 
-        type=int, 
-        default=480,
-        help="Image height (default: 480)"
-    )
-
+def main():
+    parser = argparse.ArgumentParser(description='Decompress binary files containing frames and GPS data')
+    parser.add_argument('input_dir', help='Input directory containing bin files')
+    parser.add_argument('output_dir', help='Output directory for decompressed frames')
+    
     args = parser.parse_args()
+    
+    convert_bin_files(args.input_dir, args.output_dir)
 
-    print(f"Converting files in {args.input} to PNG...")
-    convert_bin_files(args.input, args.output, args.width, args.height)
-    print("Conversion complete!")
+if __name__ == '__main__':
+    main()

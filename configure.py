@@ -39,6 +39,10 @@ def chdir_config(config):
             
     return config
 
+pkgconfig = dict()
+for package in run_list:
+    pkgconfig[package] = config["packages"][package]
+config["packages"] = pkgconfig
 config["packages"] = chdir_config(config["packages"])
 
 print("Copying config files to package directories..")
@@ -64,6 +68,7 @@ with open("run.sh", "w") as file:
     for package in run_list:
         program_path = os.path.join(PROJECT_DIR, package,"main.py")
         file.write(f"cd {os.path.dirname(program_path)}\n")
+        file.write(f"echo '\nPackage: {package}'\n")
         file.write(f"python3 main.py\n")
     file.write(f"echo 'Execution Completed!'")
 

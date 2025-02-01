@@ -1,4 +1,5 @@
-input_path_cones: /mnt/d/isdc-base-station/data/output/cone_detector/output.yaml
-input_path_depth: /mnt/d/datasets/isdc_test_drone_datasets/d1
+input_path_cones: /mnt/d/isdc-base-station/data/output/cone_pixel/output.yaml
+input_path_depth: /mnt/d/isdc-base-station/data/output/stitcher/depth/
+input_path_rgb: /mnt/d/isdc-base-station/data/output/cone_pixel/bbox
 input_path_source_point: /mnt/d/isdc-base-station/data/output/stitcher/source.yaml
 output_path: /mnt/d/isdc-base-station/data/output/path_planner/

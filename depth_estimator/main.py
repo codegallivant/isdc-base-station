@@ -6,6 +6,7 @@ import yaml
 import numpy as np
 import matplotlib as mpl
 from PIL import Image
+import glob
 
 
 with open("config.yaml", 'r') as f:
@@ -13,7 +14,20 @@ with open("config.yaml", 'r') as f:
 
 INPUT_PATH = config["input_path"]
 OUTPUT_PATH = config["output_path"]
+PROCESSED_OUTPUT_PATH = os.path.join(OUTPUT_PATH, "processed")
+if not os.path.exists(PROCESSED_OUTPUT_PATH):
+    os.makedirs(PROCESSED_OUTPUT_PATH)
 MODEL_PATH = config["model_path"]
+UNREACHABLE = 2
+
+def reset_directory(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    else:
+        delfiles = glob.glob(path+"/*")
+        for f in delfiles:
+            if os.path.isfile(f):
+                os.remove(f)
 
 def get_depth(img):
     DEVICE = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
@@ -48,15 +62,23 @@ def color_map(img):
     im = Image.fromarray(im)
     return cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
 
-
+reset_directory(OUTPUT_PATH)
+reset_directory(PROCESSED_OUTPUT_PATH)
 files = [file for file in os.listdir(INPUT_PATH) if os.path.splitext(file)[1] in ['.jpg','.png']]
 output_files = [os.path.join(OUTPUT_PATH,file) for file in files]
+p_output_files = [os.path.join(PROCESSED_OUTPUT_PATH,file) for file in files]
 input_files = [os.path.join(INPUT_PATH,file) for file in files]
-for ip, op in zip(input_files, output_files):
+for i, ip in enumerate(input_files):
+    op = output_files[i]
+    pop = p_output_files[i]
     print("Processing:",ip)
-    depth_image = get_depth(cv2.imread(ip, cv2.IMREAD_COLOR))
-    # depth_image = color_map(get_depth_image_from_matrix(depth_image))
+    input_image = cv2.imread(ip, cv2.IMREAD_COLOR)
+    mask = np.all(input_image == 0, axis=-1)  # Shape (H, W), True where pixel is black
+    depth_image = get_depth(input_image)
+    depth_image[mask] = UNREACHABLE
+    proc_depth_image = color_map(get_depth_image_from_matrix(depth_image))
     print(depth_image.shape)
     print(depth_image)
     cv2.imwrite(op, depth_image)
+    cv2.imwrite(pop, proc_depth_image)
     print("Written to:",op)

@@ -1,0 +1,5 @@
+bbox_output_path: /mnt/d/isdc-base-station/data/output/cone_pixel/bbox
+input_path: /mnt/d/isdc-base-station/data/output/stitcher/rgb
+mode: 0
+model_path: /mnt/d/isdc-base-station/models/cone_detector/cone_detector.pt
+output_path: /mnt/d/isdc-base-station/data/output/cone_pixel/output.yaml
