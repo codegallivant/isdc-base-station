@@ -21,9 +21,9 @@ def compute_gradient(depth_grid):
     grad_y, grad_x = np.gradient(depth_grid)
     return np.hypot(grad_x, grad_y)  # Faster than sqrt(x²+y²)
 
-def compute_potential_field(depth_grid, goal, obstacle_weight=5.0, goal_weight=0.5, 
-                          sigma_obstacle=2, sigma_goal=3, slope_weight=5.0,
-                          max_slope_threshold=0.2):
+def compute_potential_field(depth_grid, goal, obstacle_weight=2.0, goal_weight=2.0, 
+                          sigma_obstacle=1, sigma_goal=3, slope_weight=2.0,
+                          max_slope_threshold=0.5):
     """Enhanced potential field computation prioritizing path quality"""
     depth_min, depth_max = depth_grid.min(), depth_grid.max()
     depth_normalized = (depth_grid - depth_min) / (depth_max - depth_min + 1e-6)

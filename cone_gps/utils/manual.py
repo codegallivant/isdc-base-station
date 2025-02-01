@@ -138,7 +138,7 @@ class ImageViewerApp:
         self.lat, self.lon, self.alt = get_gps_data(self.image_paths[self.current_index])
         if self.lat is None or self.lon is None:
             print("Taking Default Values:")
-            self.lat, self.lon = 13.3498739, 74.7913784
+            self.lat, self.lon = 28.3591, 75.5882
         
         # Load and display image
         self.current_image = Image.open(self.image_paths[self.current_index])
@@ -280,7 +280,30 @@ class ImageViewerApp:
         # Save annotated image
         output_path = os.path.join(self.annotated_output_folder, current_image_name)
         cv2.imwrite(output_path, opencv_img)
+        self.current_index += 1
+        self.update_display()
 
     def next_image(self):
         if self.current_index < len(self.image_paths) - 1:
-            self.current_index +=
+            self.current_index += 1
+            self.update_display()
+
+    def prev_image(self):
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.update_display()
+
+    def prev_image(self):
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.update_display()
+
+    def revert(self):
+        current_image_name = os.path.basename(self.image_paths[self.current_index])
+        if current_image_name in self.clicked_points and self.clicked_points[current_image_name]:
+            self.clicked_points[current_image_name].pop()
+            self.coord_label.config(text="Last point removed")
+            self.save_to_yaml()
+            self.save_annotated_image()
+        else:
+            self.coord_label.config(text="No points to remove")

@@ -1,8 +1,8 @@
 algorithm: 2
 backup_interval: 50
 directory:
-  input_path: /mnt/d/datasets/isdc_test_drone_datasets/d1
-  unpack: false
+  input_path: /mnt/d/isdc-base-station/data/input
+  unpack: true
 image:
   height: 480
   width: 848

@@ -6,9 +6,9 @@ packages:
     mode: 0 # 0: live socket, 1: directory
 
     directory:
-      input_path: "/mnt/d/datasets/isdc_test_drone_datasets/d1"
-      # input_path: "data/input"
-      unpack: false
+      # input_path: "/mnt/d/datasets/isdc_test_drone_datasets/dtest"
+      input_path: "data/input"
+      unpack: true
 
     socket:
       address: 192.168.1.21
@@ -52,7 +52,7 @@ packages:
   path_planner:
 
     input_path_rgb: "data/output/cone_pixel/bbox"
-    # input_path_depth: "data/output/depth_estimator/processed"
+    # input_path_depth: "data/output/depth_estimator/"
     input_path_depth: "data/output/stitcher/depth/"
     input_path_cones: "data/output/cone_pixel/output.yaml"
     input_path_source_point: "data/output/stitcher/source.yaml"
@@ -71,6 +71,6 @@ main:
   stitcher: true
   cone_pixel: true
   depth_estimator: true
-  image_analysis: true
+  image_analysis: false
   path_planner: true
-  cone_gps: false
+  cone_gps: true
