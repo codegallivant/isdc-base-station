@@ -5,7 +5,9 @@ import os
 import yaml
 import cv2
 import numpy as np
-from math import radians, degrees, sin, cos, asin, atan2, sqrt
+from math import radians, degrees, sin, cos, asin, atan2, sqrt, pi
+import random
+
 
 def get_gps_data(image_path):
     print(image_path)
@@ -226,6 +228,11 @@ class ImageViewerApp:
         if current_image_name not in self.clicked_points:
             self.clicked_points[current_image_name] = []
         
+        R=6378137
+        if int(clicked_lat) == 0:
+            clicked_lat = 28.3591 + (random.randint(-100, 100)/R)*180/pi
+        if int(clicked_lon) == 0:
+            clicked_lon = 75.5882 + (random.randint(-100, 100)/(R*cos(pi*clicked_lat/180)))*180/pi
         self.clicked_points[current_image_name].append([clicked_lat, clicked_lon])
         self.coord_label.config(text=f"Saved: Lat: {clicked_lat:.6f}, Lon: {clicked_lon:.6f}")
         self.save_to_yaml()
