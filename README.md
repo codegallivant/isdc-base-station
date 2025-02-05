@@ -8,10 +8,12 @@ A Raspberry Pi 5 (8GB) and a Realsense D435 camera were mounted on the drone. Th
 ## Download
 1. Input can be received from either a directory or a zmq subscription socket, depending on the mode set in ``config.yaml``. The [linked repository](https://github.com/codegallivant/realsense-pub-interface) contains the zmq publisher, responsible for compressing and transmitting sensor data from a Realsense D4xx camera.
 ```bash
+# For publishing sensor data
 git clone git@github.com:codegallivant/realsense-pub-interface.git
 ```
-2. 
+2. Clone 
 ```bash
+# For receiving and processing sensor data
 git clone --depth 1 git@github.com:codegallivant/isdc-base-station.git --recurse-submodules
 ```
 3. Download models (if using image\_analysis or depth\_estimator packages)
@@ -20,24 +22,24 @@ git clone --depth 1 git@github.com:codegallivant/isdc-base-station.git --recurse
 ```
 
 ## Configuring and running
-2. Set ``config.yaml`` and run
+1. Set ``config.yaml`` and run
 ```bash
 python3 configure.py
 ```
 This will automatically write package config to each directory and create a run script.
-3. Run
+2. Run
 ```bash
 ./run.sh
 ```
 
 ## Packages
-1. stitcher
+1. ``stitcher``:
 Rapidly stitches sequentially arriving RGB images and uses the transformation calculated to stitch corresponding depth images, resulting in an RGB map and depth map. Stitching is dependent on the [image-stitcher](https://github.com/codegallivant/image-stitcher) submodule.
-2. depth_estimator
+2. ``depth_estimator``:
 Uses depth-anything-v2 for estimating depth in RGB images. Used in case data from the depth camera is not available.
-3. image_analysis
+3. ``image_analysis``:
 Predicts craters, river valleys and terrain from images.
-4. cone_pixel
+4. ``cone_pixel``:
 Detects pixel coordinates of cones, that are predicted using either a YOLO model or manually, depending on the mode set.
-5. cone_gps
+5. ``cone_gps``:
 Determines GPS coordinates of cones. Note: GPS coordinates of the drone are deciphered from the image file name itself.
