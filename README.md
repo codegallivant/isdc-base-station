@@ -36,7 +36,7 @@ This will automatically write package config to each directory and create a run 
 1. ``stitcher``:
 Rapidly stitches sequentially arriving RGB images and uses the transformation calculated to stitch corresponding depth images, resulting in an RGB map and depth map. Stitching is dependent on the [image-stitcher](https://github.com/codegallivant/image-stitcher) submodule.
 2. ``depth_estimator``:
-Uses depth-anything-v2 for estimating depth in RGB images. Used in case data from the depth camera is not available.
+Uses [Depth-Anything-V2](https://github.com/DepthAnything/Depth-Anything-V2) for estimating depth in RGB images. Used in case data from the depth camera is not available.
 3. ``image_analysis``:
 Predicts craters, river valleys and terrain from images.
 4. ``cone_pixel``:
